@@ -1,0 +1,32 @@
+# ====================================================================
+# Requirements - Prototipo Análisis Emocional en Videollamadas
+# Trabajo de Graduación - USAC - Maestría en TIC
+# ====================================================================
+# Python recomendado: 3.10 o 3.11 (3.12 también funciona)
+# En Mac con Apple Silicon (M1/M2/M3) usa tensorflow-macos en lugar
+# de tensorflow (ver instrucciones más abajo).
+# ====================================================================
+
+# --- Deep Learning ---
+tensorflow>=2.13,<2.17
+
+# --- Visión por computadora ---
+opencv-python>=4.8.0
+
+# --- Captura de pantalla ---
+mss>=9.0.1
+pyautogui>=0.9.54        # fallback si mss falla
+Pillow>=10.0.0           # requerido por Tkinter para mostrar imágenes
+
+# --- Manejo de datos ---
+numpy>=1.24,<2.0
+pandas>=2.0.0
+
+# --- Visualización (para generate_results.py) ---
+matplotlib>=3.7.0
+seaborn>=0.12.0
+scipy>=1.10.0
+
+# --- Notebooks (entrenamiento.ipynb) ---
+jupyter>=1.0.0
+ipykernel>=6.25.0
