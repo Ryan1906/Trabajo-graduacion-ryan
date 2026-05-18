@@ -39,7 +39,6 @@ Este proyecto permite analizar emociones en tiempo real durante videollamadas ed
 
 ## Notas
 - No es necesario compartir pantalla ni grabar la videollamada, solo tener la ventana visible.
-- El sistema ignora automáticamente las carpetas `venv/` y `data/raw/`.
 - Si tienes problemas con la cámara o permisos, revisa los mensajes en la interfaz.
 
 ## Autor
