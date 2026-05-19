@@ -10,3 +10,4 @@ seaborn
 scipy
 jupyter
 ipykernel
+scikit-learn
