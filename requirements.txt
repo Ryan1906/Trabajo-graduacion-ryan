@@ -1,0 +1,12 @@
+tensorflow
+opencv-python
+mss
+pyautogui
+Pillow
+numpy
+pandas
+matplotlib
+seaborn
+scipy
+jupyter
+ipykernel

@@ -1,0 +1,4 @@
+# Ignorar entorno virtual de Python
+venv/
+# Ignorar la carpeta de datos crudos
+data/raw/

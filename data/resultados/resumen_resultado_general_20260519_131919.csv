@@ -1,0 +1,16 @@
+metrica,categoria,frecuencia,porcentaje
+emocion_Enojado,Negativa,0,0.0
+emocion_Miedo,Negativa,8,15.38
+emocion_Feliz,Positiva,1,1.92
+emocion_Neutral,Neutra,41,78.85
+emocion_Triste,Negativa,2,3.85
+emocion_Sorpresa,Positiva,0,0.0
+sesiones_analizadas,General,2,
+total_registros,General,52,
+duracion_segundos,General,31.5,
+emocion_predominante,General,Neutral,
+estudiantes_promedio,General,11.13,
+estudiantes_maximo,General,16,
+clima_positivo,Clima,1,1.92
+clima_neutro,Clima,41,78.85
+clima_negativo,Clima,10,19.23

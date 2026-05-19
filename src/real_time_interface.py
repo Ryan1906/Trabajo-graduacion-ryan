@@ -11,22 +11,26 @@ Compatible con macOS, Windows y Linux.
 En macOS requiere otorgar permiso de "Grabación de pantalla"
 a la aplicación que ejecuta Python en:
 Ajustes del Sistema → Privacidad y Seguridad → Grabación de pantalla.
+
+Los CSV de cada sesión se guardan en: data/sesiones/
 """
 
 import os
+import re
 import sys
 import time
 import platform
 import subprocess
 import tempfile
 import threading
+from datetime import datetime
 
 import cv2
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 
 from tensorflow.keras.models import load_model
 
@@ -38,25 +42,40 @@ except ImportError:
 
 
 # ====================================================================
-# CONFIGURACIÓN
+# CONFIGURACIÓN Y ESTRUCTURA DE CARPETAS
 # ====================================================================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, 'models', 'emotion_model.h5')
+
+# Estructura de datos ordenada
 DATA_DIR = os.path.join(BASE_DIR, 'data')
-os.makedirs(DATA_DIR, exist_ok=True)
+SESIONES_DIR = os.path.join(DATA_DIR, 'sesiones')      # CSV de cada grabación
+RESULTADOS_DIR = os.path.join(DATA_DIR, 'resultados')  # gráficas y resúmenes
+
+# Crear las carpetas si no existen
+for carpeta in (DATA_DIR, SESIONES_DIR, RESULTADOS_DIR):
+    os.makedirs(carpeta, exist_ok=True)
 
 EMOTION_DICT = {
     0: "Enojado", 1: "Miedo", 2: "Feliz",
     3: "Neutral", 4: "Triste", 5: "Sorpresa"
 }
 
-# Parámetros de detección. Permisivos para capturar rostros pequeños
-# en pantallas compartidas tipo Zoom/Meet.
+# Parámetros de detección. Permisivos para rostros pequeños en
+# pantallas compartidas tipo Zoom/Meet.
 DETECT_MIN_SIZE = (30, 30)
 DETECT_SCALE_FACTOR = 1.1
 DETECT_MIN_NEIGHBORS = 4
 
 IS_MAC = platform.system() == "Darwin"
+
+
+def slugify(texto):
+    """Convierte un nombre de sesión en un nombre de archivo seguro."""
+    texto = texto.strip().lower()
+    texto = re.sub(r'[^\w\s-]', '', texto)
+    texto = re.sub(r'[\s]+', '_', texto)
+    return texto or "sesion"
 
 
 # ====================================================================
@@ -146,19 +165,20 @@ class EmotionApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Prototipo de Análisis Emocional - Tesis USAC")
-        self.root.geometry("780x720")
+        self.root.geometry("780x760")
         self.root.configure(bg="#1e1e2e")
 
         self.analyzing = False
         self.data_log = []
         self.start_time = None
         self.capturer = None
+        self.session_name = None
+        self.session_started_at = None
 
         try:
             print(f"[App] Cargando modelo desde: {MODEL_PATH}")
             self.model = load_model(MODEL_PATH, compile=False)
 
-            # Tres clasificadores Haar: frontal por defecto, alt2 y perfil
             haar_dir = cv2.data.haarcascades
             self.face_frontal = cv2.CascadeClassifier(
                 haar_dir + 'haarcascade_frontalface_default.xml'
@@ -210,6 +230,14 @@ class EmotionApp:
         )
         self.btn.pack(pady=10)
 
+        self.label_sesion = tk.Label(
+            self.root,
+            text="Sesión: (ninguna)",
+            font=("Helvetica", 11, "bold"),
+            bg="#1e1e2e", fg="#94e2d5"
+        )
+        self.label_sesion.pack(pady=(0, 4))
+
         self.canvas = tk.Label(self.root, bg="black", width=640, height=360)
         self.canvas.pack(pady=10)
 
@@ -223,7 +251,7 @@ class EmotionApp:
 
         self.label_info = tk.Label(
             self.root,
-            text="Rostros detectados: 0   |   FPS: 0.0",
+            text="Rostros detectados: 0   |   FPS: 0.0   |   Tiempo: 00:00",
             font=("Helvetica", 10),
             bg="#1e1e2e", fg="#a6adc8"
         )
@@ -256,6 +284,20 @@ class EmotionApp:
             self._stop()
 
     def _start(self):
+        nombre = simpledialog.askstring(
+            "Nueva sesión",
+            "Nombre o identificador de esta sesión\n"
+            "(ej. 'Clase Matematica 5A', 'Grupo Control', 'Prueba 1'):",
+            parent=self.root
+        )
+        if nombre is None:
+            return
+        if not nombre.strip():
+            nombre = "sesion_sin_nombre"
+
+        self.session_name = nombre.strip()
+        self.session_started_at = datetime.now()
+
         try:
             self.capturer = ScreenCapturer()
         except Exception as e:
@@ -267,8 +309,13 @@ class EmotionApp:
 
         self.analyzing = True
         self.start_time = time.time()
+        self.data_log = []
         self.btn.config(text="■  DETENER ANÁLISIS", bg="#e74c3c")
-        self.label_status.config(text=f"Capturando con backend: {self.capturer.backend}")
+        self.label_sesion.config(text=f"Sesión: {self.session_name}")
+        self.label_status.config(
+            text=f"Capturando con backend: {self.capturer.backend}  ·  "
+                 f"Inicio: {self.session_started_at.strftime('%Y-%m-%d %H:%M:%S')}"
+        )
         threading.Thread(target=self._loop_analisis, daemon=True).start()
 
     def _stop(self):
@@ -301,7 +348,6 @@ class EmotionApp:
             for f in faces:
                 all_faces.append(tuple(f))
 
-        # También perfil invertido (caras mirando al otro lado)
         gray_flipped = cv2.flip(gray, 1)
         w = gray.shape[1]
         faces_flipped = self.face_profile.detectMultiScale(
@@ -357,10 +403,8 @@ class EmotionApp:
                 time.sleep(0.5)
                 continue
 
-            # CLAVE: detección sobre frame ORIGINAL (alta resolución).
-            # Antes se detectaba sobre 640px → rostros muy pequeños.
             gray_full = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            gray_full = cv2.equalizeHist(gray_full)  # mejora contraste
+            gray_full = cv2.equalizeHist(gray_full)
 
             faces = self._detect_faces(gray_full)
 
@@ -381,19 +425,31 @@ class EmotionApp:
                 label = EMOTION_DICT[int(np.argmax(prediction))]
                 current_emotions.append(label)
 
-                # Dibujar sobre frame completo (escala original)
                 cv2.rectangle(frame, (x, y), (x + fw, y + fh), (0, 255, 0), 3)
                 cv2.putText(
                     frame, label, (x, max(y - 12, 20)),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2
                 )
 
+            elapsed = time.time() - self.start_time
+
             if current_emotions:
                 predominant = max(set(current_emotions), key=current_emotions.count)
+                conteo = {emo: current_emotions.count(emo) for emo in set(current_emotions)}
+
                 self.data_log.append({
-                    "timestamp": time.time() - self.start_time,
+                    "sesion": self.session_name,
+                    "fecha_inicio": self.session_started_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    "tiempo_seg": round(elapsed, 2),
+                    "tiempo_mmss": self._fmt_mmss(elapsed),
                     "emocion_grupal": predominant,
                     "estudiantes_detectados": len(current_emotions),
+                    "n_enojado": conteo.get("Enojado", 0),
+                    "n_miedo": conteo.get("Miedo", 0),
+                    "n_feliz": conteo.get("Feliz", 0),
+                    "n_neutral": conteo.get("Neutral", 0),
+                    "n_triste": conteo.get("Triste", 0),
+                    "n_sorpresa": conteo.get("Sorpresa", 0),
                 })
             else:
                 predominant = "Sin rostros"
@@ -405,7 +461,6 @@ class EmotionApp:
                 fps_t0 = now
                 frame_count = 0
 
-            # Preview reducido para la UI
             h, w = frame.shape[:2]
             preview_w = 640
             preview_h = int(h * (preview_w / w))
@@ -421,24 +476,56 @@ class EmotionApp:
                 predominant,
                 len(current_emotions),
                 fps_value,
+                elapsed,
             )
 
             time.sleep(0.05)
 
-    def _update_ui(self, img_tk, emocion, n_caras, fps):
+    @staticmethod
+    def _fmt_mmss(segundos):
+        """Convierte segundos a formato mm:ss."""
+        m = int(segundos // 60)
+        s = int(segundos % 60)
+        return f"{m:02d}:{s:02d}"
+
+    def _update_ui(self, img_tk, emocion, n_caras, fps, elapsed):
         self.canvas.config(image=img_tk)
         self.canvas.image = img_tk
         self.label_emocion.config(text=f"Emoción grupal: {emocion}")
         self.label_info.config(
-            text=f"Rostros detectados: {n_caras}   |   FPS: {fps:.1f}"
+            text=f"Rostros detectados: {n_caras}   |   "
+                 f"FPS: {fps:.1f}   |   "
+                 f"Tiempo: {self._fmt_mmss(elapsed)}"
         )
 
+    # ------------------------- Persistencia ---------------------------
     def _save_data(self):
         if not self.data_log:
+            self.label_status.config(
+                text="No hay datos que guardar (no se detectaron rostros)."
+            )
             return
-        out = os.path.join(DATA_DIR, 'sesion_tiempo_real.csv')
+
+        # Guardar en data/sesiones/
+        slug = slugify(self.session_name)
+        timestamp = self.session_started_at.strftime('%Y%m%d_%H%M%S')
+        filename = f"sesion_{slug}_{timestamp}.csv"
+        out = os.path.join(SESIONES_DIR, filename)
+
         pd.DataFrame(self.data_log).to_csv(out, index=False)
         print(f"[App] Datos guardados en: {out} ({len(self.data_log)} registros)")
+        self.label_status.config(
+            text=f"Sesión guardada: sesiones/{filename}  ·  "
+                 f"{len(self.data_log)} registros"
+        )
+        messagebox.showinfo(
+            "Sesión guardada",
+            f"Los datos de la sesión '{self.session_name}' se guardaron en:\n\n"
+            f"data/sesiones/{filename}\n\n"
+            f"Registros capturados: {len(self.data_log)}\n\n"
+            f"Para generar las gráficas ejecuta:\n"
+            f"python src/generate_results.py"
+        )
 
 
 # ====================================================================
