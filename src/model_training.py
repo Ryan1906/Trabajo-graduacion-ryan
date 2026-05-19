@@ -5,12 +5,11 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 # 1. Configuración de parámetros
 IMG_SIZE = 48
 BATCH_SIZE = 64
-EPOCHS = 25 # Puedes subirlo a 50 si tienes tiempo
+EPOCHS = 25 # Se puede subir a 50
 TRAIN_DIR = 'data/raw/archive/Training/Training'
 TEST_DIR = 'data/raw/archive/Testing/Testing'
 
 # 2. Preprocesamiento de datos (Data Augmentation)
-# Esto ayuda a que el modelo no se "aprenda de memoria" las fotos (overfitting)
 train_datagen = ImageDataGenerator(
     rescale=1./255,
     rotation_range=10,

@@ -1,29 +1,3 @@
-"""
-Evaluación del Modelo de Reconocimiento de Emociones
-=====================================================
-Trabajo de Graduación - Maestría en TIC
-Universidad de San Carlos de Guatemala
-Facultad de Ingeniería
-
-Autor: Ryan José Rodrigo Sigüenza Huertas
-
-Este script evalúa el modelo emotion_model.h5 sobre el conjunto
-de imágenes de prueba (data/raw/archive/Testing/) y genera las
-métricas de clasificación requeridas para el Capítulo 5 de la tesis:
-
-  - Accuracy (exactitud global)
-  - Precision, Recall y F1-score por cada emoción
-  - Matriz de confusión (imagen PNG)
-  - Reporte de clasificación (CSV)
-
-Las imágenes de prueba deben estar organizadas en subcarpetas,
-una por emoción. El nombre de la carpeta es la etiqueta real.
-
-Uso:
-  python src/evaluate_model.py
-  python src/evaluate_model.py --carpeta data/raw/archive/Testing
-"""
-
 import os
 import sys
 import glob
@@ -40,9 +14,6 @@ from sklearn.metrics import (
 )
 
 
-# ====================================================================
-# CONFIGURACIÓN
-# ====================================================================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, 'models', 'emotion_model.h5')
 
@@ -50,15 +21,9 @@ DATA_DIR = os.path.join(BASE_DIR, 'data')
 RESULTADOS_DIR = os.path.join(DATA_DIR, 'resultados')
 os.makedirs(RESULTADOS_DIR, exist_ok=True)
 
-# Carpeta de imágenes de prueba por defecto
+# Carpeta de imágeness
 TESTING_DIR_DEFAULT = os.path.join(DATA_DIR, 'raw', 'archive', 'Testing')
 
-# IMPORTANTE: el orden de esta lista debe coincidir con el orden
-# en que el modelo aprendió las clases durante el entrenamiento.
-# Keras (flow_from_directory) ordena las carpetas ALFABÉTICAMENTE.
-# Orden alfabético de las carpetas en inglés:
-#   Angry=0, Fear=1, Happy=2, Neutral=3, Sad=4, Suprise=5
-# Mapeo a español usado en el resto del proyecto:
 CLASES_INGLES = ["Angry", "Fear", "Happy", "Neutral", "Sad", "Suprise"]
 CLASES_ESPANOL = ["Enojado", "Miedo", "Feliz", "Neutral", "Triste", "Sorpresa"]
 
@@ -66,9 +31,6 @@ CLASES_ESPANOL = ["Enojado", "Miedo", "Feliz", "Neutral", "Triste", "Sorpresa"]
 INPUT_SIZE = (48, 48)
 
 
-# ====================================================================
-# CARGA Y PREPARACIÓN DE IMÁGENES
-# ====================================================================
 def preparar_imagen(ruta_img):
     """
     Lee una imagen y la transforma al formato que espera el modelo:
@@ -102,10 +64,9 @@ def localizar_carpeta_emociones(carpeta, profundidad_max=4):
                     if os.path.isdir(os.path.join(ruta, d))}
         except OSError:
             return False
-        # Se considera válida si al menos 2 subcarpetas son emociones
         return len(subs & nombres_validos) >= 2
 
-    # Búsqueda por niveles (BFS) hasta cierta profundidad
+
     pendientes = [(carpeta, 0)]
     while pendientes:
         ruta_actual, nivel = pendientes.pop(0)
@@ -121,7 +82,7 @@ def localizar_carpeta_emociones(carpeta, profundidad_max=4):
         except OSError:
             continue
 
-    return carpeta  # no se encontró; se devuelve la original
+    return carpeta  
 
 
 def cargar_conjunto_prueba(carpeta):
@@ -142,13 +103,12 @@ def cargar_conjunto_prueba(carpeta):
             "Verifica la ruta o pásala con --carpeta."
         )
 
-    # Detectar automáticamente el nivel correcto (maneja Testing/Testing/...)
+
     carpeta_real = localizar_carpeta_emociones(carpeta)
     if carpeta_real != carpeta:
         print(f"[Info] Carpetas de emociones encontradas en: {carpeta_real}")
     carpeta = carpeta_real
 
-    # Mapa nombre_carpeta -> índice de clase (insensible a mayúsculas)
     mapa_clases = {nombre.lower(): i for i, nombre in enumerate(CLASES_INGLES)}
 
     for subcarpeta in sorted(os.listdir(carpeta)):
@@ -163,7 +123,7 @@ def cargar_conjunto_prueba(carpeta):
 
         indice = mapa_clases[clave]
 
-        # Buscar imágenes (jpg, jpeg, png)
+
         patrones = ['*.jpg', '*.jpeg', '*.png', '*.JPG', '*.JPEG', '*.PNG']
         archivos = []
         for patron in patrones:
@@ -186,9 +146,7 @@ def cargar_conjunto_prueba(carpeta):
     return rutas, etiquetas
 
 
-# ====================================================================
-# EVALUACIÓN
-# ====================================================================
+
 def evaluar(modelo, rutas, etiquetas_reales):
     """
     Pasa cada imagen por el modelo y devuelve las predicciones
@@ -224,9 +182,6 @@ def evaluar(modelo, rutas, etiquetas_reales):
     return np.array(y_real), np.array(y_pred)
 
 
-# ====================================================================
-# GENERACIÓN DE RESULTADOS
-# ====================================================================
 def generar_matriz_confusion(y_real, y_pred, salida_png):
     """Crea la matriz de confusión como imagen PNG."""
     cm = confusion_matrix(y_real, y_pred, labels=range(len(CLASES_ESPANOL)))
@@ -319,14 +274,9 @@ def generar_grafica_metricas(df_metricas, salida_png):
     print(f"[OK] Gráfica de métricas guardada en: {salida_png}")
     plt.close(fig)
 
-
-# ====================================================================
-# MAIN
-# ====================================================================
 def main():
     args = sys.argv[1:]
 
-    # Carpeta de prueba (por defecto o pasada con --carpeta)
     carpeta = TESTING_DIR_DEFAULT
     if "--carpeta" in args:
         idx = args.index("--carpeta")

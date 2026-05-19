@@ -1,36 +1,3 @@
-"""
-Generación de Resultados - Prototipo de Análisis Emocional
-===========================================================
-Trabajo de Graduación - Maestría en TIC
-Universidad de San Carlos de Guatemala
-Facultad de Ingeniería
-
-Autor: Ryan José Rodrigo Sigüenza Huertas
-
-Procesa los CSV de sesión generados por real_time_interface.py
-y produce una imagen PNG con 4 gráficas + un CSV resumen.
-
-Estructura de carpetas:
-  data/sesiones/    -> CSV de entrada (generados por la interfaz)
-  data/resultados/  -> PNG y CSV resumen (salida de este script)
-
-Reglas de nombrado de la salida:
-  - 1 archivo procesado  -> usa el nombre de esa sesión
-  - 2 o más archivos     -> usa un nombre GENERAL con fecha
-                            (resultado_general_AAAAMMDD_HHMMSS)
-
-Las gráficas están alineadas con los objetivos del prototipo:
-  OE1: Influencia de las emociones en la participación.
-  OE2: Retroalimentación emocional para decisiones pedagógicas.
-  OE3: Visualización de emociones (interfaz / salida gráfica).
-  OE4: Implicaciones técnicas: precisión y usabilidad de la detección.
-
-Uso:
-  python src/generate_results.py                  # todas las sesiones
-  python src/generate_results.py --ultima         # solo la más reciente
-  python src/generate_results.py data/sesiones/sesion_x.csv [otra.csv ...]
-"""
-
 import os
 import sys
 import glob
@@ -42,9 +9,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-# ====================================================================
-# CONFIGURACIÓN Y ESTRUCTURA DE CARPETAS
-# ====================================================================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 SESIONES_DIR = os.path.join(DATA_DIR, 'sesiones')      # CSV de entrada
@@ -80,9 +44,6 @@ TRADUCCION_EN_ES = {
 }
 
 
-# ====================================================================
-# CARGA Y NORMALIZACIÓN DE DATOS
-# ====================================================================
 def normalizar_dataframe(df):
     """Acepta el formato NUEVO o el VIEJO y devuelve un DataFrame estándar."""
     df = df.copy()
@@ -140,9 +101,6 @@ def cargar_datos(rutas):
     return pd.concat(frames, ignore_index=True)
 
 
-# ====================================================================
-# CÁLCULO DE ESTADÍSTICAS
-# ====================================================================
 def calcular_estadisticas(df):
     """Devuelve un diccionario con las métricas clave."""
     total = len(df)
@@ -192,9 +150,6 @@ def calcular_estadisticas(df):
     }
 
 
-# ====================================================================
-# GENERACIÓN DE GRÁFICAS
-# ====================================================================
 def generar_graficas(df, stats, salida_png, titulo_extra=""):
     """Crea la figura con 4 paneles y la guarda en disco."""
     sns.set_theme(style="whitegrid")
@@ -283,9 +238,6 @@ def generar_graficas(df, stats, salida_png, titulo_extra=""):
     plt.close(fig)
 
 
-# ====================================================================
-# CSV RESUMEN
-# ====================================================================
 def guardar_resumen_csv(stats, salida_csv):
     """Guarda un CSV resumen con distribución de emociones y métricas generales."""
     filas_emocion = []

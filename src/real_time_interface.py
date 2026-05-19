@@ -1,20 +1,3 @@
-"""
-Prototipo de Análisis Emocional en Videollamadas Educativas
-============================================================
-Trabajo de Graduación - Maestría en TIC
-Universidad de San Carlos de Guatemala
-Facultad de Ingeniería
-
-Autor: Ryan José Rodrigo Sigüenza Huertas
-
-Compatible con macOS, Windows y Linux.
-En macOS requiere otorgar permiso de "Grabación de pantalla"
-a la aplicación que ejecuta Python en:
-Ajustes del Sistema → Privacidad y Seguridad → Grabación de pantalla.
-
-Los CSV de cada sesión se guardan en: data/sesiones/
-"""
-
 import os
 import re
 import sys
@@ -41,9 +24,6 @@ except ImportError:
     MSS_AVAILABLE = False
 
 
-# ====================================================================
-# CONFIGURACIÓN Y ESTRUCTURA DE CARPETAS
-# ====================================================================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, 'models', 'emotion_model.h5')
 
@@ -78,9 +58,6 @@ def slugify(texto):
     return texto or "sesion"
 
 
-# ====================================================================
-# CAPTURADOR DE PANTALLA MULTIPLATAFORMA
-# ====================================================================
 class ScreenCapturer:
     def __init__(self):
         self.backend = None
@@ -158,9 +135,6 @@ class ScreenCapturer:
                 pass
 
 
-# ====================================================================
-# APLICACIÓN PRINCIPAL
-# ====================================================================
 class EmotionApp:
     def __init__(self, root):
         self.root = root
@@ -527,10 +501,6 @@ class EmotionApp:
             f"python src/generate_results.py"
         )
 
-
-# ====================================================================
-# ENTRY POINT
-# ====================================================================
 if __name__ == "__main__":
     root = tk.Tk()
     app = EmotionApp(root)
